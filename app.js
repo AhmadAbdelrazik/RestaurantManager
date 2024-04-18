@@ -1,8 +1,4 @@
-import fs from "fs";
-import { validateHeaderValue } from "http";
 import inquirer from "inquirer";
-import { type } from "os";
-import { isUndefined } from "util";
 
 let items = [];
 
@@ -26,6 +22,13 @@ class Item {
 
   toString() {
     return this.name;
+  }
+
+  printInfo() {
+    console.log(`Item's Name:`.padEnd(35), this.name);
+    console.log(`Item's Actual Price:`.padEnd(35), this.actualPrice, ' EGP');
+    console.log(`Item's Selling Price:`.padEnd(35), this.sellingPrice, ' EGP');
+    console.log(`Item's amount:`.padEnd(35), this.amount);
   }
 }
 
@@ -254,6 +257,10 @@ async function changeStock() {
     })),
   });
 
+  console.clear();
+  answer.item.printInfo();
+  console.log("\n");
+
   let changer = await inquirer.prompt({
     type: "checkbox",
     name: "changes",
@@ -261,44 +268,71 @@ async function changeStock() {
     choices: ["Item name", "Item price", "Available amount"],
   });
 
-  if (changer.changes.find(val => val === "Item name") !== undefined) {
-    let changeName = await inquirer.prompt([{
-      type: "input",
-      name: "newName",
-      message: `Enter a new name for ${answer.item}`,
-    }, {
-      type: 'confirm',
-      name: 'confirm',
-      message: ans => `Change ${answer.item} to ${ans.newName}?`,
-    }]);
+  if (changer.changes.find((val) => val === "Item name") !== undefined) {
+    let changeName = await inquirer.prompt([
+      {
+        type: "input",
+        name: "newName",
+        message: `Enter a new name for ${answer.item}: `,
+      },
+      {
+        type: "confirm",
+        name: "confirm",
+        message: (ans) => `Change ${answer.item} to ${ans.newName}?`,
+      },
+    ]);
 
-    if (changeName.confirm) 
-      answer.item.name = changeName.newName;
-  }
-  
-  
-  if (changer.changes.find(val => val === "Item price") !== undefined) {
-    let changeName = await inquirer.prompt([{
-      type: "number",
-      name: "newPrice",
-      message: `Enter the new Price for ${answer.item}`,
-      filter: val => {
-        if (val.newPrice < 0)
-          return 0;
-      }
-    }, {
-      type: 'confirm',
-      name: 'confirm',
-      message: ans => `Change ${answer.item} to ${ans.newName}?`,
-    }]);
-
-    if (changeName.confirm) 
-      answer.item.name = changeName.newName;
+    if (changeName.confirm) answer.item.name = changeName.newName;
   }
 
-  console.log(changer);
+  if (changer.changes.find((val) => val === "Item price") !== undefined) {
+    let changePrice = await inquirer.prompt([
+      {
+        type: "number",
+        name: "newActualPrice",
+        message: `Enter the new Price for ${answer.item}: `,
+        filter: val => val < 0 ? 0 : val,
+      },
+      {
+        type: "number",
+        name: "newSellingPrice",
+        message: `Enter the new Selling Price for ${answer.item} after discount: `,
+        filter: val => val < 0 ? 0 : val,
+      },
+      {
+        type: "confirm",
+        name: "confirm",
+        message: (ans) =>
+          `Change actual price of ${answer.item} to ${ans.newActualPrice} and selling price to ${ans.newSellingPrice}?`,
+      },
+    ]);
 
-  console.log(answer);
+    if (changePrice.confirm) {
+      answer.item.sellingPrice = changePrice.newSellingPrice;
+      answer.item.actualPrice = changePrice.newActualPrice;
+    }
+  }
+  
+  if (changer.changes.find((val) => val === "Available amount") !== undefined) {
+    let changeAmount = await inquirer.prompt([
+      {
+        type: "number",
+        name: "newAmount",
+        message: `Enter the new Amount for ${answer.item}: `,
+        filter: val => val < 0 ? 0 : val,
+      },
+      {
+        type: "confirm",
+        name: "confirm",
+        message: ans =>
+          `Change amount of ${answer.item} to ${ans.newAmount}?`,
+      },
+    ]);
+
+    if (changeAmount.confirm) 
+      answer.item.amount = changeAmount.newAmount;
+  }
+  
   let confirmer = await inquirer.prompt({
     name: "back",
     type: "confirm",
@@ -308,6 +342,7 @@ async function changeStock() {
     process.exit(0);
   }
 }
+
 
 async function printMenu() {
   orderMenu();
