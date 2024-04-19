@@ -1,4 +1,8 @@
 import inquirer from "inquirer";
+import cliProgrss from "cli-progress";
+
+let progressBar = new cliProgrss.SingleBar({}, cliProgrss.Presets.shades_classic);
+const sleep = async (ms = 1000) => {return new Promise((r) => {setTimeout(r, ms)})};
 
 let items = [];
 
@@ -42,10 +46,29 @@ items.push(new Item("Croissant", 19, 19, 40));
 
 // Main Menu
 
+async function progressor(message) {
+  console.clear();
+  console.log(message);
+  progressBar.start(100, 0);
+  for (let i = 0; i <= 100; i++) {
+    progressBar.update(i);
+    await sleep(20 * Math.random());
+  }
+  progressBar.stop();
+  console.clear();
+
+}
+
+async function closeProgram() {
+  await progressor("Closing the Program Please Wait");
+  process.exit(0);
+}
+
 async function mainMenu() {
   let c = 1;
   while (c < 100) {
-    console.clear();
+    await progressor("Loading the program, Please Wait");
+    
     let answer = await inquirer.prompt({
       type: "list",
       name: "mainChoice",
@@ -63,10 +86,7 @@ async function mainMenu() {
     else if (answer.mainChoice === "Add an Item") await addItem();
     else if (answer.mainChoice === "Edit Items") await changeStock();
     else if (answer.mainChoice === "Print Menu") await printMenu();
-    else if (answer.mainChoice === "Close the Program") {
-      console.clear();
-      process.exit(0);
-    }
+    else if (answer.mainChoice === "Close the Program") await closeProgram();
 
     c++;
   }
@@ -98,6 +118,7 @@ function orderMenu() {
 }
 
 async function order() {
+  await progressor("Loading UI")
   orderMenu();
 
   let answer = await inquirer.prompt({
@@ -142,6 +163,7 @@ async function order() {
     cart[i++].orderedAmount = amounts[enough];
   }
 
+  await progressor("Making the recepit");
   await printReceipt(cart);
 
   let confirmer = await inquirer.prompt({
@@ -149,10 +171,8 @@ async function order() {
     type: "confirm",
     message: "Return Back?",
   });
+  if (!confirmer.back) await closeProgram();
 
-  if (!confirmer.back) {
-    process.exit(0);
-  }
 }
 
 async function printReceipt(cart) {
@@ -187,6 +207,7 @@ async function printReceipt(cart) {
 // add Item
 
 async function addItem() {
+  await progressor("Loading Items");
   let answer = await inquirer.prompt([
     {
       type: "input",
@@ -209,41 +230,48 @@ async function addItem() {
       message: "How many is in the stock: ",
       default: 0,
     },
-    {
-      type: "confirm",
-      message: "Add the Item?",
-      name: "confirmation",
-    },
   ]);
 
   if (
-    !answer.confirmation ||
+    answer.itemName.length < 2 ||
     isNaN(answer.sellingPrice) ||
     isNaN(answer.itemPrice) ||
     isNaN(answer.amount)
   ) {
+    console.clear();
+    console.log("Unsuitable Values for item\n");
+    await sleep(1000);
     return;
   }
-
-  items.push(
-    new Item(
-      answer.itemName,
-      answer.itemPrice,
-      answer.sellingPrice,
-      answer.amount
-    )
-  );
-
-  console.log(`${answer.itemName} has been added to the menu`);
+  let newItem = new Item(
+    answer.itemName,
+    answer.itemPrice,
+    answer.sellingPrice,
+    answer.amount
+  )
+  
+  let confirmAdd = inquirer.prompt({
+    type: "confirm",
+    name: "confirm",
+    message: () => {
+      console.log("Confirm adding the following item?")
+      newItem.printInfo();
+    }
+  })
+  if (confirmAdd.confirm) {
+    items.push(newItem);
+    console.log(`${answer.itemName} has been added to the menu`);
+  } else {
+    console.log("Item addition has been canceled");
+  }
 
   let confirmer = await inquirer.prompt({
     name: "back",
     type: "confirm",
     message: "Return Back?",
   });
-  if (!confirmer.back) {
-    process.exit(0);
-  }
+  if (!confirmer.back) await closeProgram();
+
 }
 
 async function changeStock() {
@@ -338,9 +366,7 @@ async function changeStock() {
     type: "confirm",
     message: "Return Back?",
   });
-  if (!confirmer.back) {
-    process.exit(0);
-  }
+  if (!confirmer.back) await closeProgram();
 }
 
 
@@ -352,9 +378,7 @@ async function printMenu() {
     type: "confirm",
     message: "Return Back?",
   });
-  if (!confirmer.back) {
-    process.exit(0);
-  }
+  if (!confirmer.back) await closeProgram();
 }
 
 // Events
